@@ -16,6 +16,7 @@ export default function Dashboard({ navigation }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [recentTransactions, setRecentTransactions] = useState([]);
 
   // Fetch dashboard data from API
   const fetchDashboardData = async (isRefresh = false) => {
@@ -26,9 +27,17 @@ export default function Dashboard({ navigation }) {
         setLoading(true);
       }
 
-      const response = await axios.get('/farmers/dashboard');
-      if (response.data.success) {
-        setDashboardData(response.data.data);
+      const [dashboardRes, transactionsRes] = await Promise.all([
+        axios.get('/farmers/dashboard'),
+        axios.get('/wallet/transactions?limit=5')
+      ]);
+
+      if (dashboardRes.data.success) {
+        setDashboardData(dashboardRes.data.data);
+      }
+
+      if (transactionsRes.data.success) {
+        setRecentTransactions(transactionsRes.data.data.transactions);
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -70,14 +79,32 @@ export default function Dashboard({ navigation }) {
     }];
   };
 
-  // Farmer only quick actions
-  const getQuickActions = () => {
-    return [
-      { title: 'Scan QR', icon: 'qr-code', screen: 'Scanner', color: ['#00D9FF', '#0094FF'] },
-      { title: 'History', icon: 'time', screen: 'History', color: ['#00D9FF', '#0077CC'] },
-      { title: 'Deposit', icon: 'arrow-up', screen: 'Deposit', color: ['#00FF88', '#00CC6A'] }
-    ];
-  };
+const getQuickActions = () => {
+  return [
+    { 
+      title: 'Deposit Milk', 
+      icon: 'water', 
+      screen: 'DepositMilk', // Changed from 'Deposit'
+      color: ['#00FF88', '#00CC6A'],
+      description: 'Deposit raw milk'
+    },
+    { 
+      title: 'Withdraw Milk', 
+      icon: 'flask-outline', 
+      screen: 'WithdrawMilk', 
+      color: ['#00D9FF', '#0094FF'],
+      description: 'Collect pasteurized milk'
+    },
+    { 
+      title: 'Wallet', 
+      icon: 'wallet-outline', 
+      screen: 'Wallet', 
+      color: ['#7B2CFF', '#A855F7'],
+      description: 'Tokens & transfers'
+    }
+  ];
+};
+
 
   const getUserDisplayName = () => {
     return user?.name || 'Farmer';
@@ -99,18 +126,45 @@ export default function Dashboard({ navigation }) {
   };
 
   // Get icon and color for transaction type
-  const getTransactionIcon = (type) => {
-    switch (type) {
-      case 'sent':
-        return { icon: 'arrow-up', color: '#FF6B6B' };
-      case 'received':
-        return { icon: 'arrow-down', color: '#00FF88' };
-      case 'deposit':
-        return { icon: 'add-circle', color: '#00FF88' };
-      case 'withdrawal':
-        return { icon: 'remove-circle', color: '#FF6B6B' };
+  const getTransactionDisplay = (tx) => {
+    const isSent = tx.fromUser?._id === user?._id;
+    
+    switch (tx.type) {
+      case 'token_transfer':
+        return {
+          icon: isSent ? 'arrow-up' : 'arrow-down',
+          color: isSent ? '#FF6B6B' : '#00FF88',
+          title: isSent ? `Sent to ${tx.toUser?.name}` : `Received from ${tx.fromUser?.name}`,
+          amount: `${isSent ? '-' : '+'}${tx.tokensAmount} MTZ`
+        };
+      case 'cash_redemption':
+        return {
+          icon: 'cash-outline',
+          color: '#FF9500',
+          title: 'Cash Redemption',
+          amount: `≈${tx.cashAmount} KSH`
+        };
+      case 'milk_deposit':
+        return {
+          icon: 'water',
+          color: '#00D9FF',
+          title: 'Milk Deposit',
+          amount: `+${tx.tokensAmount} MTZ`
+        };
+      case 'milk_withdrawal':
+        return {
+          icon: 'flask',
+          color: '#7B2CFF',
+          title: 'Milk Withdrawal',
+          amount: `-${tx.tokensAmount} MTZ`
+        };
       default:
-        return { icon: 'swap-horizontal', color: '#00D9FF' };
+        return {
+          icon: 'swap-horizontal',
+          color: '#8B92B2',
+          title: tx.type,
+          amount: `${tx.tokensAmount || tx.cashAmount} ${tx.tokensAmount ? 'MTZ' : 'KSH'}`
+        };
     }
   };
 
@@ -179,69 +233,76 @@ export default function Dashboard({ navigation }) {
               />
             </View>
 
-            {/* Stats Cards - Real API Data */}
-            {/* <View style={styles.statsContainer}>
-              {stats.map((stat, index) => (
-                <View key={index} style={styles.statCard}>
-                  <View style={[styles.statIcon, { backgroundColor: `${stat.color}20` }]}>
-                    <Ionicons name={stat.icon} size={20} color={stat.color} />
-                  </View>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-                </View>
-              ))}
-            </View> */}
-
             {/* Quick Actions */}
-            <View style={styles.actionsContainer}>
-              {quickActions.map((action, index) => (
-                <TouchableOpacity 
-                  key={index} 
-                  onPress={() => navigation.navigate(action.screen)}
-                  activeOpacity={0.8}
-                  style={styles.actionTouchable}
-                >
-                  <LinearGradient 
-                    colors={action.color} 
-                    style={styles.actionCard}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+            <View style={styles.actionsSection}>
+              <Text style={styles.sectionTitle}>Quick Actions</Text>
+              <View style={styles.actionsContainer}>
+                {quickActions.map((action, index) => (
+                  <TouchableOpacity 
+                    key={index} 
+                   onPress={() => {
+  if (action.screen === 'DepositMilk' || action.screen === 'WithdrawMilk') {
+    navigation.navigate(action.screen); // Navigates to Stack screen
+  } else {
+    // For tab screens (Wallet), you might need to navigate differently
+    // Since Wallet is in the tab navigator, we can just switch tabs
+    if (action.screen === 'Wallet') {
+      navigation.navigate('Tabs', { screen: 'Wallet' });
+    } else {
+      navigation.navigate(action.screen);
+    }
+  }
+}}
+                    activeOpacity={0.8}
+                    style={styles.actionTouchable}
                   >
-                    <View style={styles.actionIcon}>
-                      <Ionicons name={action.icon} size={28} color="#FFF" />
-                    </View>
-                    <Text style={styles.actionTitle}>{action.title}</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-              ))}
+                    <LinearGradient 
+                      colors={action.color} 
+                      style={styles.actionCard}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <View style={styles.actionIcon}>
+                        <Ionicons name={action.icon} size={28} color="#FFF" />
+                      </View>
+                      <Text style={styles.actionTitle}>{action.title}</Text>
+                      <Text style={styles.actionDescription}>{action.description}</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
 
             {/* Recent Activity - Real API Data */}
             <View style={styles.recentTransactions}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Recent Activity</Text>
-                <TouchableOpacity onPress={() => navigation.navigate('History')}>
+                <TouchableOpacity onPress={() => navigation.navigate('Wallet')}>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
               
-              {dashboardData?.recentActivity?.length > 0 ? (
-                dashboardData.recentActivity.slice(0, 5).map((activity) => {
-                  const { icon, color } = getTransactionIcon(activity.type);
+              {recentTransactions.length > 0 ? (
+                recentTransactions.map((tx) => {
+                  const display = getTransactionDisplay(tx);
                   return (
-                    <View key={activity.id} style={styles.txCard}>
-                      <View style={[styles.txIcon, { backgroundColor: `${color}20` }]}>
-                        <Ionicons name={icon} size={18} color={color} />
+                    <TouchableOpacity 
+                      key={tx._id} 
+                      style={styles.txCard}
+                      activeOpacity={0.7}
+                      onPress={() => navigation.navigate('Wallet')}
+                    >
+                      <View style={[styles.txIcon, { backgroundColor: `${display.color}20` }]}>
+                        <Ionicons name={display.icon} size={18} color={display.color} />
                       </View>
                       <View style={styles.txInfo}>
-                        <Text style={styles.txTitle}>{activity.description}</Text>
-                        <Text style={styles.txDate}>{formatTimeAgo(activity.timestamp)}</Text>
+                        <Text style={styles.txTitle}>{display.title}</Text>
+                        <Text style={styles.txDate}>{formatTimeAgo(tx.createdAt)}</Text>
                       </View>
-                      <Text style={[styles.txAmount, { color }]}>
-                        {activity.type === 'sent' || activity.type === 'withdrawal' ? '-' : '+'}
-                        {activity.amount} {activity.unit}
+                      <Text style={[styles.txAmount, { color: display.color }]}>
+                        {display.amount}
                       </Text>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })
               ) : (
@@ -351,66 +412,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 10,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    gap: 12,
+  actionsSection: {
     marginBottom: 32,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#1E2749',
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#2A3356',
-    minHeight: 100,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  statValue: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  statLabel: {
-    color: '#8B92B2',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
     paddingHorizontal: 20,
   },
   sectionTitle: {
     color: '#FFF',
     fontSize: 20,
     fontWeight: '800',
-  },
-  seeAllText: {
-    color: '#00D9FF',
-    fontSize: 14,
-    fontWeight: '600',
+    marginBottom: 16,
   },
   actionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
     gap: 12,
-    marginBottom: 32,
     justifyContent: 'space-between',
   },
   actionTouchable: {
@@ -418,7 +433,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   actionCard: {
-    height: 100,
+    height: 120,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -434,13 +449,32 @@ const styles = StyleSheet.create({
   },
   actionTitle: {
     color: '#FFF',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
-    lineHeight: 14,
+    lineHeight: 16,
+    marginBottom: 4,
+  },
+  actionDescription: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 13,
   },
   recentTransactions: {
     marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  seeAllText: {
+    color: '#00D9FF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   txCard: {
     flexDirection: 'row',

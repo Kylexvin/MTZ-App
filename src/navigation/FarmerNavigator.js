@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import FarmerDashboard from '../screens/farmer/FarmerDashboard';
 import Wallet from '../screens/farmer/Wallet';
+import WithdrawMilk from '../screens/farmer/WithdrawMilk'; // Add this import
+import DepositMilk from '../screens/farmer/DepositMilk'; // Add this import
 import Account from '../screens/farmer/Account';
 import Scanner from '../screens/common/Scanner';
 
@@ -83,6 +85,24 @@ export default function FarmerNavigator() {
         component={Scanner}
         options={{
           presentation: 'modal'
+        }}
+      />
+      <Stack.Screen 
+        name="WithdrawMilk" 
+        component={WithdrawMilk}
+        options={{
+          presentation: 'card',
+          gestureEnabled: true,
+          cardStyle: { backgroundColor: '#0A0E27' }
+        }}
+      />
+      <Stack.Screen 
+        name="DepositMilk" 
+        component={DepositMilk}
+        options={{
+          presentation: 'card',
+          gestureEnabled: true,
+          cardStyle: { backgroundColor: '#0A0E27' }
         }}
       />
     </Stack.Navigator>
