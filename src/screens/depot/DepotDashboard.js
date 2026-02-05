@@ -6,17 +6,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import TokenBalanceCard from '../../components/TokenBalanceCard';
 import { useAuth } from '../../context/AuthContext';
+import { useTokens } from '../../hooks/useTokens';
 import axios from 'axios';
 
 const { width } = Dimensions.get('window');
 
 export default function DepotDashboard({ navigation }) {
   const { user, logout } = useAuth();
+  const { balance, refreshBalance } = useTokens();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch depot dashboard data from API
   const fetchDashboardData = async (isRefresh = false) => {
     try {
       if (isRefresh) {
@@ -25,7 +26,7 @@ export default function DepotDashboard({ navigation }) {
         setLoading(true);
       }
 
-      const response = await axios.get(`/depot/${user.assignedDepot}/dashboard`);
+      const response = await axios.get(`/depots/${user.assignedDepot}/dashboard`);
       if (response.data.success) {
         setDashboardData(response.data.data);
       }
@@ -41,7 +42,6 @@ export default function DepotDashboard({ navigation }) {
     fetchDashboardData();
   }, []);
 
-  // Quick actions for depot attendant
   const quickActions = [
     { 
       title: 'Receive Milk', 
@@ -128,8 +128,11 @@ export default function DepotDashboard({ navigation }) {
             {/* Balance Card */}
             <View style={styles.balanceSection}>
               <TokenBalanceCard 
-                balance={dashboardData?.attendant?.walletBalance || 0} 
-                onRefresh={() => fetchDashboardData(true)} 
+                balance={balance} 
+                onRefresh={() => {
+                  refreshBalance();
+                  fetchDashboardData(true);
+                }} 
               />
             </View>
 
@@ -188,7 +191,7 @@ export default function DepotDashboard({ navigation }) {
                   Total: {((dashboardData?.stock?.rawMilk || 0) + (dashboardData?.stock?.pasteurizedMilk || 0))}L / {dashboardData?.stock?.capacity || 0}L
                 </Text>
                 <Text style={styles.capacityPercent}>
-                  {dashboardData?.stock?.utilization || 0}% utilized
+                  {parseFloat(dashboardData?.stock?.utilization) || 0}% utilized
                 </Text>
               </View>
             </View>
@@ -261,32 +264,6 @@ export default function DepotDashboard({ navigation }) {
               </View>
             </View>
 
-            {/* Depot Status */}
-            {dashboardData && (
-              <View style={styles.statusSection}>
-                <Text style={styles.sectionTitle}>Depot Status</Text>
-                <View style={styles.statusCard}>
-                  <View style={styles.statusItem}>
-                    <Ionicons name="business" size={16} color="#8B92B2" />
-                    <Text style={styles.statusLabel}>Depot:</Text>
-                    <Text style={styles.statusValue}>{dashboardData.depot?.name}</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <Ionicons name="location" size={16} color="#8B92B2" />
-                    <Text style={styles.statusLabel}>Location:</Text>
-                    <Text style={styles.statusValue}>{dashboardData.depot?.location}</Text>
-                  </View>
-                  <View style={styles.statusItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#00FF88" />
-                    <Text style={styles.statusLabel}>Status:</Text>
-                    <Text style={[styles.statusValue, styles.statusActive]}>
-                      {dashboardData.depot?.status || 'Active'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
-
             {/* Footer */}
             <View style={styles.footer}>
               <Text style={styles.footerText}>Secured by Blockchain Technology</Text>
@@ -324,7 +301,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -385,7 +361,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 24,
   },
-  // Stock Section
   stockSection: {
     marginBottom: 24,
   },
@@ -459,7 +434,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-  // Actions Section
   actionsSection: {
     marginBottom: 24,
   },
@@ -495,7 +469,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     textAlign: 'center',
   },
-  // Tasks Section
   tasksSection: {
     marginBottom: 24,
   },
@@ -550,40 +523,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A3356',
     marginVertical: 8,
   },
-  // Status Section
-  statusSection: {
-    marginBottom: 24,
-  },
-  statusCard: {
-    backgroundColor: '#1E2749',
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#2A3356',
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  statusLabel: {
-    color: '#8B92B2',
-    fontSize: 14,
-    marginLeft: 8,
-    marginRight: 4,
-    fontWeight: '500',
-  },
-  statusValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-    flex: 1,
-  },
-  statusActive: {
-    color: '#00FF88',
-  },
-  // Footer
   footer: {
     marginTop: 20,
     marginBottom: 20,

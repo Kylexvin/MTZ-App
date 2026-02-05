@@ -50,21 +50,6 @@ export default function Account({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* Stats */}
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>1,247</Text>
-                <Text style={styles.statLabel}>Transactions</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>4.9</Text>
-                <Text style={styles.statLabel}>Rating</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statValue}>2.5y</Text>
-                <Text style={styles.statLabel}>Member Since</Text>
-              </View>
-            </View>
 
             {/* Settings */}
             <Text style={styles.sectionTitle}>Preferences</Text>

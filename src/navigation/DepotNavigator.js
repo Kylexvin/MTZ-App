@@ -20,6 +20,8 @@ import FarmerLookup from '../screens/depot/FarmerLookup';
 import KccPickup from '../screens/depot/KccPickup';
 import KccDeliveryQR from '../screens/depot/KccDeliveryQR';
 import TransactionHistory from '../screens/depot/TransactionHistory';
+// Add to imports (line 9):
+import PaymentScreen from '../screens/depot/PaymentScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -112,6 +114,7 @@ export default function DepotNavigator() {
       <Stack.Screen name="ReceiveMilk" component={ReceiveMilk} />
       <Stack.Screen name="QuickInventory" component={QuickInventory} />
       <Stack.Screen name="SellToCustomer" component={SellToCustomer} />
+      <Stack.Screen name="PaymentScreen" component={PaymentScreen} />
     </Stack.Navigator>
   );
 }
