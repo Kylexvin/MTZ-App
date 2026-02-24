@@ -73,7 +73,7 @@ const AppContent = () => {
 export default function App() {
   const baseURL = Platform.OS === 'ios'
     ? 'http://localhost:5000'
-    : 'http://192.168.100.10:5000';
+    : 'https://mtz.onrender.com';
     //  https://mtz.onrender.com
 
   axios.defaults.baseURL = baseURL + '/api';
