@@ -29,6 +29,7 @@ export default function Inventory({ navigation }) {
     stockAlerts: [],
   });
 
+
   // Fetch inventory data
   const fetchInventoryData = async (isRefresh = false) => {
     try {
@@ -80,6 +81,7 @@ export default function Inventory({ navigation }) {
       stockAlerts: alertsRes.data.data?.alerts || [],
     });
   };
+  
 
   useEffect(() => {
     fetchInventoryData();
